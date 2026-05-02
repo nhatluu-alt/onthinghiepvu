@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title> Trắc nghiệm nghiệp vụ – Thuế TP Đà Nẵng</title>
+<title>Trắc Nghiệm Công Chức Thuế – Cục Thuế TP Đà Nẵng</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -310,6 +310,26 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
 .shake{animation:shake .4s ease}
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
 
+
+/* Firebase setup modal removed */
+
+/* Firebase status badge in topbar */
+.fb-status{display:flex;align-items:center;gap:5px;padding:4px 10px;
+  border-radius:20px;font-size:10.5px;font-weight:700;
+  background:rgba(255,255,255,.15);color:rgba(255,255,255,.85);
+  cursor:pointer;transition:background .2s;flex-shrink:0}
+.fb-status:hover{background:rgba(255,255,255,.25)}
+.fb-dot{width:7px;height:7px;border-radius:50%;background:#aaa;flex-shrink:0}
+.fb-dot.online{background:#2ecc71;box-shadow:0 0 0 2px rgba(46,204,113,.35);animation:fbpulse 1.5s infinite}
+.fb-dot.offline{background:#e74c3c}
+.fb-dot.local{background:var(--gold)}
+@keyframes fbpulse{0%,100%{box-shadow:0 0 0 2px rgba(46,204,113,.35)}50%{box-shadow:0 0 0 5px rgba(46,204,113,.1)}}
+
+/* LB online badge */
+.lb-online-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;
+  background:#eafaf1;color:#1a7a47;border:1px solid #a9dfbf;
+  border-radius:10px;padding:2px 7px;font-weight:700;margin-left:6px;vertical-align:middle}
+
 @media(max-width:680px){
   .quiz-grid{grid-template-columns:1fr}
   .stats-panel{position:static}
@@ -326,8 +346,12 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
 <div class="topbar">
   <div class="topbar-logo">🏛️</div>
   <div class="topbar-titles">
-    <div class="topbar-t1">Thuế Thành Phố Đà Nẵng</div>
-    <div class="topbar-t2">Hỗ trợ nâng cao nghiệp vụ</div>
+    <div class="topbar-t1">Cục Thuế Thành Phố Đà Nẵng</div>
+    <div class="topbar-t2">Hệ Thống Ôn Tập Công Chức Thuế</div>
+  </div>
+  <div class="fb-status" id="fb-status" title="Trạng thái kết nối Firebase">
+    <div class="fb-dot" id="fb-dot"></div>
+    <span id="fb-label">Cục bộ</span>
   </div>
   <div class="topbar-author">
     <div class="an">Nguyễn Hữu Nhật Lưu</div>
@@ -615,21 +639,145 @@ function shuffle(a){ let b=[...a]; for(let i=b.length-1;i>0;i--){let j=Math.floo
 function fmtTime(s){ let m=String(Math.floor(s/60)).padStart(2,'0'),sec=String(s%60).padStart(2,'0');return m+':'+sec }
 function screen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('s-'+id).classList.add('active') }
 
-// ══════════════ LEADERBOARD ══════════════
-const LB_KEY='tax_dn_lb_v3';
-function getLB(){ try{return JSON.parse(localStorage.getItem(LB_KEY)||'[]')}catch(e){return []} }
-function saveLB(name,dept,score,answered,total,pct,timeSec){
-  let lb=getLB();
-  lb.push({name,dept,score,answered,total,pct,time:fmtTime(timeSec),date:new Date().toLocaleDateString('vi-VN')});
-  lb.sort((a,b)=>b.pct-a.pct||b.score-a.score||(a.time<b.time?-1:1));
-  lb=lb.slice(0,10);
-  localStorage.setItem(LB_KEY,JSON.stringify(lb));
+// ══════════════ LEADERBOARD (Firebase + localStorage fallback) ══════════════
+const LB_KEY_LOCAL = 'tax_dn_lb_v3';
+let fbDB = null;
+let fbConnected = false;
+let lbListeners = {}; // active realtime listeners by containerId
+
+
+// ── Init Firebase ──
+function initFirebase(cfg) {
+  try {
+    // Delete existing app if reconfiguring
+    if (firebase.apps.length) {
+      firebase.apps.forEach(a => a.delete());
+    }
+    firebase.initializeApp(cfg);
+    fbDB = firebase.database();
+    // Test connection
+    const connRef = firebase.database().ref('.info/connected');
+    connRef.on('value', snap => {
+      fbConnected = snap.val() === true;
+      updateFBBadge();
+      if (fbConnected) refreshAllLB();
+    });
+    updateFBBadge();
+    return true;
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    fbDB = null; fbConnected = false;
+    updateFBBadge();
+    return false;
+  }
 }
-function renderLB(cid){
-  const lb=getLB(), el=document.getElementById(cid);
-  if(!lb.length){el.innerHTML='<div class="no-lb">Chưa có kết quả. Hãy là người đầu tiên! 🚀</div>';return}
-  const M=['🥇','🥈','🥉'];
-  el.innerHTML=lb.map((e,i)=>`
+
+function updateFBBadge() {
+  const dot = document.getElementById('fb-dot');
+  const lbl = document.getElementById('fb-label');
+  if (!fbDB) {
+    dot.className = 'fb-dot local';
+    lbl.textContent = 'Cục bộ';
+  } else if (fbConnected) {
+    dot.className = 'fb-dot online';
+    lbl.textContent = 'Online ✓';
+  } else {
+    dot.className = 'fb-dot offline';
+    lbl.textContent = 'Đang kết nối…';
+  }
+}
+
+function refreshAllLB() {
+  ['lb-login','lb-results'].forEach(id => {
+    if (document.getElementById(id)) renderLB(id);
+  });
+}
+
+// ── Save score ──
+async function saveLB(name, dept, score, answered, total, pct, timeSec) {
+  const entry = {
+    name, dept, score, answered, total, pct,
+    time: fmtTime(timeSec),
+    date: new Date().toLocaleDateString('vi-VN'),
+    ts: Date.now()
+  };
+
+  // Always save locally
+  let local = getLocalLB();
+  local.push(entry);
+  local.sort((a,b) => b.pct-a.pct || b.score-a.score);
+  local = local.slice(0,10);
+  localStorage.setItem(LB_KEY_LOCAL, JSON.stringify(local));
+
+  // Save to Firebase if connected
+  if (fbDB && fbConnected) {
+    try {
+      const ref = fbDB.ref('leaderboard');
+      await ref.push(entry);
+      // Trim to top 10 online
+      await trimFirebaseLB();
+    } catch(e) {
+      console.warn('Firebase save failed, using local only:', e);
+    }
+  }
+}
+
+async function trimFirebaseLB() {
+  if (!fbDB) return;
+  try {
+    const snap = await fbDB.ref('leaderboard').once('value');
+    const data = snap.val();
+    if (!data) return;
+    let all = Object.entries(data).map(([k,v]) => ({...v, _key:k}));
+    all.sort((a,b) => b.pct-a.pct || b.score-a.score);
+    // Remove entries beyond top 10
+    const toDelete = all.slice(10);
+    const updates = {};
+    toDelete.forEach(e => { updates[`leaderboard/${e._key}`] = null; });
+    if (toDelete.length) await fbDB.ref().update(updates);
+  } catch(e) { console.warn('Trim failed:', e); }
+}
+
+function getLocalLB() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY_LOCAL) || '[]'); } catch(e) { return []; }
+}
+
+// ── Render LB ──
+function renderLB(cid) {
+  const el = document.getElementById(cid);
+  if (!el) return;
+
+  if (fbDB) {
+    // Realtime listener
+    if (lbListeners[cid]) {
+      fbDB.ref('leaderboard').off('value', lbListeners[cid]);
+    }
+    el.innerHTML = '<div class="no-lb" style="color:var(--muted)">⏳ Đang tải dữ liệu online…</div>';
+    lbListeners[cid] = fbDB.ref('leaderboard').on('value', snap => {
+      const data = snap.val();
+      let lb = data ? Object.values(data) : [];
+      lb.sort((a,b) => b.pct-a.pct || b.score-a.score);
+      lb = lb.slice(0,10);
+      drawLB(el, lb, true);
+    }, err => {
+      console.warn('Firebase read error:', err);
+      drawLB(el, getLocalLB(), false);
+    });
+  } else {
+    drawLB(el, getLocalLB(), false);
+  }
+}
+
+function drawLB(el, lb, isOnline) {
+  if (!lb.length) {
+    el.innerHTML = '<div class="no-lb">Chưa có kết quả. Hãy là người đầu tiên! 🚀</div>';
+    return;
+  }
+  const M = ['🥇','🥈','🥉'];
+  const onlineTag = isOnline
+    ? '<span class="lb-online-tag">🌐 Online</span>'
+    : '<span class="lb-online-tag" style="background:#f5f0e8;color:var(--muted);border-color:var(--border)">💾 Cục bộ</span>';
+  el.innerHTML = lb.map((e,i) => `
     <div class="lb-row ${i===0?'r1':i===1?'r2':i===2?'r3':''}">
       <div class="lb-rank">${M[i]||(i+1)}</div>
       <div class="lb-name">${esc(e.name)}</div>
@@ -637,7 +785,7 @@ function renderLB(cid){
       <div class="lb-score">${e.score}/${e.answered}</div>
       <div class="lb-pct">${e.pct}%</div>
       <div class="lb-date">${e.date||''}</div>
-    </div>`).join('');
+    </div>`).join('') + `<div style="text-align:right;margin-top:6px">${onlineTag}</div>`;
 }
 
 // ══════════════ LOGIN ══════════════
@@ -869,7 +1017,50 @@ function showResults(early){
 }
 
 // ══════════════ INIT ══════════════
-renderLB('lb-login');
+renderLB('lb-login'); // render local first (instant)
 </script>
+
+<!-- ═══ Firebase — loaded last for guaranteed availability ═══ -->
+<script>
+// Inline Firebase compat SDK via dynamic script injection
+// This ensures load order is correct on all browsers/devices
+function loadScript(src, cb) {
+  var s = document.createElement('script');
+  s.src = src;
+  s.onload = cb;
+  s.onerror = function() { console.warn('Failed to load: ' + src); cb(); };
+  document.head.appendChild(s);
+}
+
+var FIREBASE_CFG = {
+  apiKey:            "AIzaSyDorbtUGrgj3tsii9ieOqhq6h10uruYjLI",
+  authDomain:        "onthikt-74809.firebaseapp.com",
+  databaseURL:       "https://onthikt-74809-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "onthikt-74809",
+  storageBucket:     "onthikt-74809.firebasestorage.app",
+  messagingSenderId: "606769949015",
+  appId:             "1:606769949015:web:2ff1464f8d18069caaf612",
+  measurementId:     "G-21MJDBEJX2"
+};
+
+loadScript(
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
+  function() {
+    loadScript(
+      'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js',
+      function() {
+        if (typeof firebase !== 'undefined') {
+          initFirebase(FIREBASE_CFG);
+          renderLB('lb-login');
+        } else {
+          console.warn('Firebase unavailable — dùng local storage.');
+          updateFBBadge();
+        }
+      }
+    );
+  }
+);
+</script>
+
 </body>
 </html>
