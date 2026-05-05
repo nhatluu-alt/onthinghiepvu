@@ -466,8 +466,8 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
 <div class="topbar">
   <div class="topbar-logo">🏛️</div>
   <div class="topbar-titles">
-    <div class="topbar-t1">Phòng Kiểm tra số 3</div>
-    <div class="topbar-t2">Hỗ trợ công chức sát hạch</div>
+    <div class="topbar-t1">Cục Thuế Thành Phố Đà Nẵng</div>
+    <div class="topbar-t2">Hệ Thống Ôn Tập Công Chức Thuế</div>
   </div>
   <div class="fb-status" id="fb-status" title="Trạng thái kết nối Firebase">
     <div class="fb-dot" id="fb-dot"></div>
@@ -483,8 +483,8 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
 <div id="s-login" class="screen active">
   <div class="login-wrap">
     <div class="login-card">
-      <div class="login-title">📋 Trắc nghiệm nghiệp vụ</div>
-      <div class="login-sub">Chuyên ngành thuế</div>
+      <div class="login-title">📋 Thi Trắc Nghiệm</div>
+      <div class="login-sub">Bộ đề ôn tập Công chức Thuế Thành phố Đà Nẵng</div>
 
       <div class="info-banner">
         <span class="ib-icon">ℹ️</span>
@@ -497,7 +497,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
       </div>
       <div class="field">
         <label>🏢 Cơ Quan Công Tác</label>
-        <input id="inp-dept" type="text" placeholder="Phòng/Thuế cơ sở…" maxlength="80" autocomplete="off">
+        <input id="inp-dept" type="text" placeholder="Phòng / Chi cục / Đơn vị…" maxlength="80" autocomplete="off">
       </div>
 
       <div class="field">
@@ -597,7 +597,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
         <div class="timer-row">⏱ Thời gian: <span class="timer-val" id="timer">00:00</span></div>
 
         <!-- submit early -->
-        <button class="btn-early" onclick="askSubmit()">🏁 Nộp bài</button>
+        <button class="btn-early" onclick="askSubmit()">🏁 Nộp bài giữa chừng</button>
       </div>
 
     </div><!-- /quiz-grid -->
@@ -612,7 +612,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
 <div class="modal-bg" id="modal">
   <div class="modal">
     <div class="modal-icon">📤</div>
-    <h3>Nộp bài?</h3>
+    <h3>Nộp bài giữa chừng?</h3>
     <p>Bạn đã trả lời <strong id="m-done">0</strong> / <strong id="m-total">0</strong> câu. Kết quả sẽ được tính ngay.</p>
     <div class="modal-chips">
       <div class="mc mok"><div class="mcv" id="m-ok">0</div>Câu đúng</div>
@@ -1082,7 +1082,7 @@ function showResults(early){
   const badge=document.getElementById('res-badge');
   if(early){
     badge.className='badge fail';
-    badge.textContent='📤 Đã nộp ('+answered+'/'+total+' câu)';
+    badge.textContent='📤 Đã nộp giữa chừng ('+answered+'/'+total+' câu)';
   } else if(pct>=90){
     badge.className='badge pass'; badge.textContent='🏆 Xuất sắc!';
   } else if(pct>=80){
