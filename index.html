@@ -492,7 +492,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
 <div class="modal-bg" id="modal">
   <div class="modal">
     <div class="modal-icon">📤</div>
-    <h3>Nộp bài giữa chừng?</h3>
+    <h3>Nộp bài?</h3>
     <p>Bạn đã trả lời <strong id="m-done">0</strong> / <strong id="m-total">0</strong> câu. Kết quả sẽ được tính ngay.</p>
     <div class="modal-chips">
       <div class="mc mok"><div class="mcv" id="m-ok">0</div>Câu đúng</div>
@@ -1001,7 +1001,7 @@ function showResults(early){
   const badge=document.getElementById('res-badge');
   if(early){
     badge.className='badge fail';
-    badge.textContent='📤 Đã nộp giữa chừng ('+answered+'/'+total+' câu)';
+    badge.textContent='📤 Đã nộp bài ('+answered+'/'+total+' câu)';
   } else if(pct>=90){
     badge.className='badge pass'; badge.textContent='🏆 Xuất sắc!';
   } else if(pct>=80){
