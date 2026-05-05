@@ -878,8 +878,10 @@ function logout(){ screen('login'); renderLB('lb-login') }
 async function startQuiz(){
   const name=document.getElementById('inp-name').value.trim();
   const dept=document.getElementById('inp-dept').value.trim();
-  if(!name){alert('Vui lòng nhập họ và tên!');return}
-  if(!dept){alert('Vui lòng nhập cơ quan công tác!');return}
+  const pw=document.getElementById('inp-pw').value;
+  if(!name){alert('Vui lòng nhập họ và tên!');return;}
+  if(!dept){alert('Vui lòng nhập cơ quan công tác!');return;}
+  if(!pw){showPwError('Vui lòng nhập mật khẩu!');document.getElementById('inp-pw').focus();return;}
   const ok=await checkPassword(pw);
   if(!ok) return;
 
@@ -895,7 +897,8 @@ async function startQuiz(){
   S.qs=pool.slice(0,count);
 
   document.getElementById('badge-name').textContent=name;
-  startTimer();
+  clearInterval(S.timerRef);
+  S.timerRef=setInterval(()=>{S.timerSec++;document.getElementById('timer').textContent=fmtTime(S.timerSec);},1000);
   screen('quiz');
   renderQ();
 }
