@@ -466,7 +466,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
 <div class="topbar">
   <div class="topbar-logo">🏛️</div>
   <div class="topbar-titles">
-    <div class="topbar-t1">Phòng Kiểm tra số 3 </div>
+    <div class="topbar-t1">Phòng Kiểm tra số 3</div>
     <div class="topbar-t2">Ứng dụng hỗ trợ học tập</div>
   </div>
   <div class="fb-status" id="fb-status" title="Trạng thái kết nối Firebase">
@@ -475,7 +475,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
   </div>
   <div class="topbar-author">
     <div class="an">Nguyễn Hữu Nhật Lưu</div>
-    <div class="ad">Phòng Kiểm tra số 3 </div>
+    <div class="ad">Phòng Kiểm Tra Số 3</div>
   </div>
 </div>
 
@@ -526,11 +526,18 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
         </div>
         <div class="field">
           <label>🔀 Chế độ</label>
-          <select id="inp-mode">
-            <option value="random">Ngẫu nhiên</option>
-            <option value="order">Theo thứ tự</option>
+          <select id="inp-mode" onchange="toggleRange(this.value)">
+            <option value="random">🔀 Ngẫu nhiên</option>
+            <option value="order">🔢 Theo thứ tự</option>
+            <option value="range">📌 Theo phạm vi</option>
           </select>
         </div>
+      </div>
+
+      <!-- Range selector (visible when mode=range) -->
+      <div class="field" id="range-wrap" style="display:none">
+        <label>📌 Chọn phạm vi câu hỏi</label>
+        <select id="inp-range"></select>
       </div>
 
       <button class="btn-start" onclick="startQuiz()">🚀 Bắt Đầu Làm Bài</button>
@@ -899,7 +906,13 @@ async function startQuiz(){
 
   let pool=ALL.filter(q=>q.a && (selectedTopic==='all' || q.t===selectedTopic));
   if(!pool.length){alert('Không có câu hỏi nào trong chủ đề này!');return;}
-  pool=mode==='random'?shuffle(pool):pool;
+  if(mode==='range'){
+    const rangeVal = document.getElementById('inp-range').value;
+    const [rs, re] = rangeVal.split(',').map(Number);
+    pool = pool.slice(rs, re); // already in order
+  } else {
+    pool = mode==='random' ? shuffle(pool) : pool;
+  }
   S.qs=pool.slice(0,count);
 
   document.getElementById('badge-name').textContent=name;
@@ -933,13 +946,33 @@ function renderQ(){
   document.getElementById('q-num').textContent=`Câu ${idx+1} / ${total}  (Câu số ${q.n} trong ngân hàng)`;
   document.getElementById('q-text').textContent=q.q;
 
+  // Shuffle option content but keep A B C D labels
+  const letters = ['A','B','C','D'];
+  const originalLetters = Object.keys(q.o).sort(); // e.g. ['A','B','C','D']
+  const contents = shuffle([...originalLetters.map(l => q.o[l])]);
+
+  // Build display map: display label -> original letter (for answer checking)
+  // Also store on question for pick() to use
+  q._displayMap = {}; // displayLetter -> originalLetter
+  q._reverseMap = {}; // originalLetter -> displayLetter
+
+  const displayLetters = letters.slice(0, originalLetters.length);
+  displayLetters.forEach((displayL, i) => {
+    // Find which original letter has this content
+    const content = contents[i];
+    const origL = originalLetters.find(l => q.o[l] === content);
+    q._displayMap[displayL] = origL;
+    q._reverseMap[origL] = displayL;
+  });
+
   const grid=document.getElementById('opts');
   grid.innerHTML='';
-  Object.keys(q.o).sort().forEach(letter=>{
+  displayLetters.forEach((displayL, i) => {
     const btn=document.createElement('button');
     btn.className='opt';
-    btn.innerHTML=`<span class="opt-l">${letter}</span><span>${esc(q.o[letter])}</span>`;
-    btn.onclick=()=>pick(letter);
+    btn.setAttribute('data-display', displayL);
+    btn.innerHTML=`<span class="opt-l">${displayL}</span><span>${esc(contents[i])}</span>`;
+    btn.onclick=()=>pick(displayL);
     grid.appendChild(btn);
   });
 
@@ -954,21 +987,29 @@ function renderQ(){
 }
 
 // ══════════════ PICK ANSWER ══════════════
-function pick(chosen){
+function pick(displayChosen){
   if(S.answered) return;
   S.answered=true;
 
   const q=S.qs[S.idx];
-  const correct=q.a;
-  const ok=chosen===correct;
+  const map = q._displayMap || {};
+  const revMap = q._reverseMap || {};
+
+  // Convert display letter chosen → original letter
+  const origChosen = map[displayChosen] || displayChosen;
+  const correctOrig = q.a; // original correct letter
+  const correctDisplay = revMap[correctOrig] || correctOrig; // display label of correct
+
+  const ok = origChosen === correctOrig;
   if(ok) S.score++;
   S.history.push(ok?'ok':'err');
 
-  document.querySelectorAll('.opt').forEach((btn,i)=>{
-    const letter=Object.keys(q.o).sort()[i];
+  document.querySelectorAll('.opt').forEach(btn=>{
+    const displayL = btn.getAttribute('data-display');
+    const origL = map[displayL] || displayL;
     btn.disabled=true;
-    if(letter===correct) btn.classList.add('correct');
-    else if(letter===chosen&&!ok) btn.classList.add('wrong-pick');
+    if(origL===correctOrig) btn.classList.add('correct');
+    else if(displayL===displayChosen && !ok) btn.classList.add('wrong-pick');
     else btn.classList.add('dimmed');
   });
 
@@ -977,10 +1018,10 @@ function pick(chosen){
   const fb=document.getElementById('feedback');
   if(ok){
     fb.className='feedback ok';
-    fb.innerHTML='✅ Chính xác! Đáp án <strong>'+correct+'</strong> đúng.';
+    fb.innerHTML='✅ Chính xác! Đáp án <strong>'+correctDisplay+'</strong> đúng.';
   } else {
     fb.className='feedback err';
-    fb.innerHTML='❌ Sai. Đáp án đúng là <strong>'+correct+': '+esc(q.o[correct])+'</strong>';
+    fb.innerHTML='❌ Sai. Đáp án đúng là <strong>'+correctDisplay+': '+esc(q.o[correctOrig])+'</strong>';
   }
   document.getElementById('btn-next').classList.add('show');
   updateStats();
@@ -1144,6 +1185,8 @@ function initTopics(){
 }
 
 function selectTopic(code, color){
+  // Rebuild range options if range mode active
+  if(document.getElementById('inp-mode').value==='range') buildRangeOptions();
   selectedTopic = code;
   document.querySelectorAll('.topic-chip').forEach(btn => {
     const isActive = btn.dataset.code === code;
@@ -1152,6 +1195,34 @@ function selectTopic(code, color){
     btn.style.borderColor = isActive ? btn.dataset.color : '';
     btn.style.color = isActive ? '#fff' : '';
   });
+}
+
+// ── RANGE MODE ──
+function toggleRange(mode){
+  const wrap = document.getElementById('range-wrap');
+  if(mode === 'range'){
+    wrap.style.display = 'block';
+    buildRangeOptions();
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function buildRangeOptions(){
+  const sel = document.getElementById('inp-range');
+  const topic = selectedTopic;
+  // Get pool filtered by topic
+  const pool = ALL.filter(q => q.a && (topic==='all' || q.t===topic));
+  const total = pool.length;
+  const step = 50;
+  sel.innerHTML = '';
+  for(let start=0; start<total; start+=step){
+    const end = Math.min(start+step, total);
+    const opt = document.createElement('option');
+    opt.value = start + ',' + end;
+    opt.textContent = `Câu ${start+1} → ${end}  (${end-start} câu)`;
+    sel.appendChild(opt);
+  }
 }
 
 initTopics();
@@ -1204,6 +1275,8 @@ function initTopics(){
 }
 
 function selectTopic(code, color){
+  // Rebuild range options if range mode active
+  if(document.getElementById('inp-mode').value==='range') buildRangeOptions();
   selectedTopic = code;
   document.querySelectorAll('.topic-chip').forEach(btn => {
     const isActive = btn.dataset.code === code;
@@ -1212,6 +1285,34 @@ function selectTopic(code, color){
     btn.style.borderColor = isActive ? btn.dataset.color : '';
     btn.style.color = isActive ? '#fff' : '';
   });
+}
+
+// ── RANGE MODE ──
+function toggleRange(mode){
+  const wrap = document.getElementById('range-wrap');
+  if(mode === 'range'){
+    wrap.style.display = 'block';
+    buildRangeOptions();
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function buildRangeOptions(){
+  const sel = document.getElementById('inp-range');
+  const topic = selectedTopic;
+  // Get pool filtered by topic
+  const pool = ALL.filter(q => q.a && (topic==='all' || q.t===topic));
+  const total = pool.length;
+  const step = 50;
+  sel.innerHTML = '';
+  for(let start=0; start<total; start+=step){
+    const end = Math.min(start+step, total);
+    const opt = document.createElement('option');
+    opt.value = start + ',' + end;
+    opt.textContent = `Câu ${start+1} → ${end}  (${end-start} câu)`;
+    sel.appendChild(opt);
+  }
 }
 
 initTopics();
