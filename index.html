@@ -95,7 +95,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
 .lb-score{font-weight:900;color:var(--red);font-size:13px;white-space:nowrap}
 .lb-pct{font-size:11px;color:var(--muted);white-space:nowrap}
 .lb-date{font-size:10px;color:var(--muted);white-space:nowrap}
-.lb-time{font-size:11px;color:var(--blue);font-weight:700;white-space:nowrap}
+.lb-time{font-size:11.5px;color:var(--blue);font-weight:800;white-space:nowrap;background:var(--blue2);border-radius:6px;padding:2px 6px;}
 .no-lb{text-align:center;color:var(--muted);font-size:13px;padding:18px 0}
 
 /* ══════════════════ QUIZ ══════════════════ */
@@ -485,7 +485,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
   <div class="login-wrap">
     <div class="login-card">
       <div class="login-title">📋 Thi Trắc Nghiệm</div>
-      <div class="login-sub">Nghiệp vụ chuyên ngành thuế</div>
+      <div class="login-sub">Bộ đề ôn tập Công chức Thuế Thành phố Đà Nẵng</div>
 
       <div class="info-banner">
         <span class="ib-icon">ℹ️</span>
@@ -498,7 +498,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
       </div>
       <div class="field">
         <label>🏢 Cơ Quan Công Tác</label>
-        <input id="inp-dept" type="text" placeholder="Phòng /THuế cơ sở…" maxlength="80" autocomplete="off">
+        <input id="inp-dept" type="text" placeholder="Phòng /Thuế cơ sở…" maxlength="80" autocomplete="off">
       </div>
 
       <div class="field">
@@ -734,6 +734,13 @@ let S = {
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
 function shuffle(a){ let b=[...a]; for(let i=b.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]};return b }
 function fmtTime(s){ let m=String(Math.floor(s/60)).padStart(2,'0'),sec=String(s%60).padStart(2,'0');return m+':'+sec }
+function fmtTimeLB(t){
+  if(!t||t==='--:--') return '--';
+  const p=t.split(':'), m=parseInt(p[0]||0), s=parseInt(p[1]||0);
+  if(m===0) return s+'g';
+  if(s===0) return m+'ph';
+  return m+'ph '+s+'g';
+}
 function screen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('s-'+id).classList.add('active') }
 
 // ══════════════ LEADERBOARD (Firebase + localStorage fallback) ══════════════
@@ -881,6 +888,7 @@ function drawLB(el, lb, isOnline) {
       <div class="lb-dept">${esc(e.dept)}</div>
       <div class="lb-score">${e.score}/${e.answered}</div>
       <div class="lb-pct">${e.pct}%</div>
+      <div class="lb-time">⏱ ${fmtTimeLB(e.time)}</div>
       <div class="lb-date">${e.date||''}</div>
     </div>`).join('') + `<div style="text-align:right;margin-top:6px">${onlineTag}</div>`;
 }
