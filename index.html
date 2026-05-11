@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sát hạch nghiệp vụ</title>
+<title>Trắc Nghiệm Công Chức Thuế – Cục Thuế TP Đà Nẵng</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -497,7 +497,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
       </div>
       <div class="field">
         <label>🏢 Cơ Quan Công Tác</label>
-        <input id="inp-dept" type="text" placeholder="Phòng / Thuế cơ sở…" maxlength="80" autocomplete="off">
+        <input id="inp-dept" type="text" placeholder="Phòng / Chi cục / Đơn vị…" maxlength="80" autocomplete="off">
       </div>
 
       <div class="field">
@@ -522,6 +522,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
             <option value="60">60 câu (~30 phút)</option>
             <option value="100">100 câu (~50 phút)</option>
             <option value="200">200 câu (full thi)</option>
+            <option value="500">500 câu (siêu thi)</option>
           </select>
         </div>
         <div class="field">
@@ -609,7 +610,7 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
         <div class="timer-row">⏱ Thời gian: <span class="timer-val" id="timer">00:00</span></div>
 
         <!-- submit early -->
-        <button class="btn-early" onclick="askSubmit()">🏁 Nộp bài giữa chừng</button>
+        <button class="btn-early" onclick="askSubmit()">🏁 Nộp bài</button>
       </div>
 
     </div><!-- /quiz-grid -->
